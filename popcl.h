@@ -4,4 +4,5 @@
 
 int popcl_client();
 int popcl_client_unsecure();
+int popcl_login();
 #endif

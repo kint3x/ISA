@@ -29,35 +29,30 @@ int popcl_client_unsecure(){
 
 	char buf[BUFFER_SIZE];
 
+	ret = popcl_login(bio);
+	CHECK_ret
 
-	READ_buf
+	return 0;
+}
 
-	printf("RESPONSE: %s",buf);
-	
+
+int popcl_login(BIO *bio){
+	char buf[BUFFER_SIZE];
+	int ret;
+
+	sprintf(buf,"USER %s\r\n",args.user);
+	WRITE_buf PRINT_buf EMPTY_buf
+	READ_buf PRINT_buf 
+
+	if(buf[0] != '+') return _BAD_USERNAME_OR_PASS;
+
 	EMPTY_buf
 
-	sprintf(buf,"USER skauti@80zbor.skauting.sk\r\n");
+	sprintf(buf, "PASS %s\r\n",args.pass);
+	WRITE_buf PRINT_buf EMPTY_buf
 
-	WRITE_buf
-
-	EMPTY_buf
-
-	READ_buf
-
-	if(buf[0] != '+') return _REPLAY_BAD;
-
-	printf("RESPONSE: %s",buf);
-	EMPTY_buf 
-	sprintf(buf,"PASS Skautingnasbavi1\r\n");
-	WRITE_buf
-	EMPTY_buf 
-	READ_buf
-
-	printf("RESPONSE: %s",buf);
-
-	if(buf[0] != '+') return _REPLAY_BAD;
-
-	EMPTY_buf 
+	READ_buf PRINT_buf
+	if(buf[0] != '+') return _BAD_USERNAME_OR_PASS;
 
 	return 0;
 }

@@ -7,6 +7,10 @@
 
 #include "headers.h"
 #include "args.h"
+#include "err.h"
+
+#define BUFFER_SIZE 1024
+
 
 int isNumber(char s[])
 {
@@ -138,6 +142,8 @@ void args_init(ARGUMENTS *args){
 	args->b_port = false;
 	args->b_certfile = false;
 	args->port = 110;
+	args->user = NULL;
+	args->pass = NULL;
 
 }
 
@@ -155,4 +161,79 @@ void print_args(ARGUMENTS args){
 	printf("\nOUTDIR: %s",args.out);
 
 	printf("\n");
+}
+
+int parse_authfile(){
+	FILE *fp;
+
+	fp = fopen(args.auth_file,"r");
+	if(fp == NULL){
+		return _FILE_NOT_EXIST;
+	}
+
+	char buf[BUFFER_SIZE];
+	char *ptr = buf;
+	char ch;
+	while((ch = fgetc(fp)) != EOF){
+      if(ptr == buf+BUFFER_SIZE) return _FILE_TOO_BIG;
+      if(ch == ' ') continue;
+      sprintf(ptr,"%c", ch);
+      ptr++;
+	}
+
+	char *help;
+	
+	//parse username
+	
+	char string[BUFFER_SIZE/2];
+	help = string;
+	char *find = strstr(buf,"username=");
+
+	if(find == NULL){
+		return _BAD_AUTHFILE_FORMAT;
+	}
+	//delete username=
+	find = find+9;
+	while((ch=(char)*(find++))!='\n'){
+		if(ch == EOF) return _BAD_AUTHFILE_FORMAT;
+		sprintf(help,"%c",ch);
+		help++;
+	}
+
+	args.user = (char *) malloc(sizeof(char)*strlen(string)+1);
+	strcpy(args.user,string);
+
+	//parse password
+
+	memset(string, '\0', sizeof(string));
+	help = string;
+	find = strstr(buf,"password=");
+
+	if(find == NULL){
+		return _BAD_AUTHFILE_FORMAT;
+	}
+	//delete username=
+	find = find+9;
+	while((ch=(char)*(find++))!='\n'){
+		if(ch == EOF) return _BAD_AUTHFILE_FORMAT;
+		sprintf(help,"%c",ch);
+		help++;
+	}
+
+	args.pass = (char *) malloc(sizeof(char)*strlen(string)+1);
+	strcpy(args.pass,string);
+
+
+
+  	fclose(fp);
+
+  	return 0;
+}
+
+void prg_free_memory(){
+
+
+	free(args.pass);
+	free(args.user);
+
 }

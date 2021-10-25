@@ -13,6 +13,8 @@ typedef struct arguments{
 
 	bool b_auth, b_out,b_certfile,b_certdir,b_port;
 
+	char *user,*pass;
+
 
 } ARGUMENTS;
 
@@ -22,5 +24,7 @@ ARGUMENTS args;
 int parse_args(int argc,char **argv,ARGUMENTS *args);
 void args_init(ARGUMENTS *args);
 void print_args(ARGUMENTS args);
+int parse_authfile();
+void prg_free_memory();
 
 #endif
