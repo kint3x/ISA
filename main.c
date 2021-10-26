@@ -9,6 +9,7 @@
 int main(int argc,char **argv){
 
 	int ret;
+	stiahnute_spravy = 0;
 	
 	args_init(&args);
 	if((ret = parse_args(argc,argv,&args)) != 0){
@@ -24,7 +25,7 @@ int main(int argc,char **argv){
 
 	ret = popcl_client();
 
-	printf("Aplikacia skoncila s kodom %d\n",ret);
+	printf("Aplikacia skoncila s kodom %d a stiahla %d sprav\n",ret,stiahnute_spravy);
 
 	prg_free_memory();
 

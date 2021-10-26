@@ -21,6 +21,9 @@ typedef struct arguments{
 //globalna premenna na ukladanie argumentov
 ARGUMENTS args;
 
+//premenna na ukladanie stiahnutych sprav
+int stiahnute_spravy;
+
 int parse_args(int argc,char **argv,ARGUMENTS *args);
 void args_init(ARGUMENTS *args);
 void print_args(ARGUMENTS args);

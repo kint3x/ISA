@@ -2,6 +2,7 @@
 #include "popcl.h"
 #include "args.h"
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include "connect.h"
 #include "headers.h"
@@ -95,12 +96,26 @@ int download_emails(BIO *bio){
 
  		FILE *f;
  		EMPTY_buf sprintf(buf,"%s/%s",args.out,filename);
+
+ 		if(check_if_file_exists(buf)){ 
+ 			if(args.n){
+ 				free(email_content);
+				free(filename);
+				continue;
+ 			}
+
+ 		}
+ 		else{
+ 			stiahnute_spravy++;
+ 		}
+
+ 		
  		f = fopen(buf,"w");
  		if(f == NULL)
 	    {
 	        return _FILE_FAILURE;
 	    }
-	    //orezanie prikazu
+	    //orezanie mailu aby obsahoval len data
 	    char *without_header = email_content;
 	    while(*without_header != '\n') without_header++;
 	    without_header++;
@@ -109,15 +124,30 @@ int download_emails(BIO *bio){
 	    fputs(without_header, f);
 
 	    fclose(f);
-
+	    //vymaze mail po stiahnuti
+	    if(args.d){
+	    	EMPTY_buf sprintf(buf,"DELE %d\r\n",i); WRITE_buf PRINT_buf
+	    	EMPTY_buf READ_buf PRINT_buf
+	    }
 
  		free(email_content);
 		free(filename);
 	}
 
 
+	EMPTY_buf sprintf(buf,"QUIT\r\n");WRITE_buf PRINT_buf
+	EMPTY_buf READ_buf PRINT_buf
+
 
 	return 0;
+}
+
+int check_if_file_exists(char *file){
+	if( access( file, F_OK ) == 0 ) {
+    	return 1;
+	} else {
+	   	return 0;
+	}
 }
 
 int download_single_email(int num,char *buf,int buff_size,BIO * bio){

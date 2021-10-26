@@ -9,4 +9,5 @@ int parse_stats(char *buf,int *msg_count,int *total_size);
 int download_emails(BIO *bio);
 int get_request_reply(char *buf,BIO * bio,int buff_size);
 int download_single_email(int num,char *buf,int buff_size,BIO * bio);
+int check_if_file_exists(char *file);
 #endif
