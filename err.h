@@ -1,6 +1,6 @@
 
 
-
+#define _FILE_FAILURE 29
 #define _FILE_NOT_EXIST 30
 #define _FILE_TOO_BIG 31
 #define _BAD_AUTHFILE_FORMAT 32

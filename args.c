@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
 
 #include "headers.h"
 #include "args.h"
@@ -112,6 +114,19 @@ int parse_args(int argc,char **argv,ARGUMENTS *args){
 	//povinne parametre
 	if(!args->b_auth) return 12;
 	if(!args->b_out) return 13;
+
+	//check out dir
+	DIR* dir = opendir(args->out);
+	if (dir) {
+	    /* Directory exists. */
+	    closedir(dir);
+	} else if (ENOENT == errno) {
+	    return 10; //neda sa otvorit zlozka
+	} else {
+	    return 10; //neda sa otvorit zlozka
+	}
+
+
 
 	// nastavenia dynamickej logiky
 	if(cmd_count!=argc-2) return 10; // chyba hostname
