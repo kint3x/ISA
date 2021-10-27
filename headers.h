@@ -3,6 +3,7 @@
 #ifndef _HEADERS_H
 #define _HEADERS_H
 
+#define BUFFER_SIZE 1024
 
 #define CHECK_ret if(ret!=0) return ret;
 #define EMPTY_buf memset(buf, '\0', sizeof(buf));

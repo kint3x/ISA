@@ -11,8 +11,6 @@
 #include "args.h"
 #include "err.h"
 
-#define BUFFER_SIZE 1024
-
 
 int isNumber(char s[])
 {
@@ -135,6 +133,7 @@ int parse_args(int argc,char **argv,ARGUMENTS *args){
 	if(args->T && args->S) return 11; // nemozu byt prepinace t a s naraz
 
 	if((args->C || args->c ) && args->T) return 12; // nemozu byt T a c alebo C argumenty
+	if( (args->b_certfile || args->b_certdir) && !(args->T || args->S) ) return 12; // neda sa zadavat certifikat na unsecured
 
 	//port nastavenie
 	if(!args->b_port){
