@@ -15,10 +15,30 @@ int popcl_client(){
 	int ret;
 
 	if((args.S || args.T) == false){
-		ret =popcl_client_unsecure();
+		ret = popcl_client_unsecure();
+		CHECK_ret
+	}
+	if(args.T){
+		ret = popcl_client_secure();
 		CHECK_ret
 	}
 	
+
+	return 0;
+}
+
+int popcl_client_secure(){
+	int ret;
+
+	BIO * bio = popcl_secured_connect(&ret);
+	CHECK_ret
+
+
+	ret = popcl_login(bio);
+	CHECK_ret
+
+	ret = download_emails(bio);
+	CHECK_ret
 
 	return 0;
 }
@@ -28,8 +48,6 @@ int popcl_client_unsecure(){
 
 	BIO * bio = popcl_unsecured_connect(&ret);
 	CHECK_ret
-
-	char buf[BUFFER_SIZE];
 
 	ret = popcl_login(bio);
 	CHECK_ret
@@ -53,7 +71,7 @@ int download_emails(BIO *bio){
 	char buf[BUFFER_SIZE];
 	int ret;
 
-	EMPTY_buf sprintf(buf,"STAT\r\n"); WRITE_buf EMPTY_buf
+	EMPTY_buf sprintf(buf,"STAT\r\n"); WRITE_buf PRINT_buf EMPTY_buf
 	READ_buf PRINT_buf
 
 
@@ -87,12 +105,12 @@ int download_emails(BIO *bio){
 
 		printf("FILENAME %s\n",filename);
 
-		//rozsirime o 100 charov pre odpoved servera
+		//rozsirime o 500 charov pre odpoved servera
  		char *email_content = (char *) malloc(sizeof(char)*email_size+100);
  		printf("CREATING %d BYTES\n",email_size+100);
 
  		//get email
- 		download_single_email(i,email_content,email_size+100,bio);
+ 		download_single_email(i,email_content,email_size,100,bio);
 
  		FILE *f;
  		EMPTY_buf sprintf(buf,"%s/%s",args.out,filename);
@@ -115,13 +133,14 @@ int download_emails(BIO *bio){
 	    {
 	        return _FILE_FAILURE;
 	    }
-	    //orezanie mailu aby obsahoval len data
+	    
+	    /*//orezanie mailu aby obsahoval len data
 	    char *without_header = email_content;
 	    while(*without_header != '\n') without_header++;
 	    without_header++;
 	    *(without_header+email_size)='\0';
-
-	    fputs(without_header, f);
+		*/
+	    fprintf(f,"%s",email_content);
 
 	    fclose(f);
 	    //vymaze mail po stiahnuti
@@ -150,38 +169,79 @@ int check_if_file_exists(char *file){
 	}
 }
 
-int download_single_email(int num,char *buf,int buff_size,BIO * bio){
-	char command[BUFFER_SIZE];
+int download_single_email(int num,char *message,int message_size,int spacing,BIO * bio){
+	char buf[BUFFER_SIZE];
 	int ret;
+	int rode_bytes;
+	int cutted;
 
-	sprintf(command,"RETR %d\r\n",num);
+	sprintf(buf,"RETR %d\r\n",num); PRINT_buf;
+	WRITE_buf EMPTY_buf;
+	
+	READ_buf CHECK_buf_reply
 
-	if(BIO_write(bio, command, strlen(command)) <= 0) {
-	 if(! BIO_should_retry(bio)){
-	 	return _CONNECTION_FAILED;
-	 } 
-	 return _CONNECTION_FAILED;
+	char *p=buf;
+
+	while(*(p) != '\n'){	
+		ret--;
+		p++;
 	}
+	p++;
+	ret--;
 
-	ret = BIO_read(bio, buf, buff_size);
-	if(ret == 0){
-		return _CONNECTION_CLOSED;
-	}
-	else if(ret < 0){
-		if(! BIO_should_retry(bio)){
-			return _CONNECTION_FAILED;
-		}
-		return _CONNECTION_FAILED; 
-	}
+	strcpy(message,p);
+	rode_bytes=ret;
 
+	EMPTY_buf;
+
+	do {
+
+		READ_buf
+		cutted = cut_buffer_lines(buf);
+		strcpy(message+rode_bytes,buf);
+		rode_bytes += ret-cutted;
+		printf("RODE %d bytes out of %d\n",rode_bytes,message_size);
+		printf("\n ------------------------- BLOCK START-------------\n");
+		PRINT_buf
+		printf("\n ------------------------- BLOCK END --------------\n");
+		EMPTY_buf
+		
+		//-3 for .CRLF trio
+	} while(rode_bytes < message_size);
+	*(message+message_size)='\0';
+	printf("ENDED %d < %d\n",rode_bytes,message_size);
 
 	return 0;
 
 }
+int cut_buffer_lines(char *buf){
+	int cut = 0;
+	char *h;
+	while(*buf != '\0'){
+		if((*buf) == '\n'){
+			if(*(buf+1) == 46){
+				if(*(buf+2) == 46){
+					h=buf+1;
+					do{
+						*h=*(h+1);
+						h++;
+					}while(*(h+1) != '\0');
+					cut++;
+					printf("FOUND OCCURENCE %c%c%c %d %d %d\n",*(buf+1),*(buf+2),*(buf+3),*(buf+1),*(buf+2),*(buf+3));
+				}
+			}
+		}
+		buf++;
+	}
 
+	return cut;
+}
 int popcl_login(BIO *bio){
 	char buf[BUFFER_SIZE];
-	int ret;
+	int ret=0;
+	
+	READ_buf PRINT_buf EMPTY_buf
+
 
 	sprintf(buf,"USER %s\r\n",args.user);
 	WRITE_buf PRINT_buf EMPTY_buf
@@ -196,7 +256,6 @@ int popcl_login(BIO *bio){
 
 	READ_buf PRINT_buf
 	if(buf[0] != '+') return _BAD_USERNAME_OR_PASS;
-
 	return 0;
 }
 

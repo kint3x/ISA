@@ -16,9 +16,7 @@ BIO * popcl_unsecured_connect(int *error){
 	BIO * bio;
 
 	int pocet_char = strlen(args.server);
-
 	char server_port[pocet_char+20];
-
 	sprintf(server_port,"%s:%d",args.server,args.port);
 
 
@@ -41,18 +39,32 @@ BIO * popcl_unsecured_connect(int *error){
 }
 
 BIO *popcl_secured_connect(int *error){
-	char buf[BUFFER_SIZE];
+
+	BIO * bio;
 	
 	SSL_CTX  *ctx = SSL_CTX_new(SSLv23_client_method());
 	SSL  *ssl;
 
-	if(! SSL_CTX_load_verify_locations(ctx, "/path/to/TrustStore.pem", NULL))
+	if((args.b_certfile || args.b_certdir) == 0){
+		SSL_CTX_set_default_verify_paths(ctx);
+	}
+	
+	bio = BIO_new_ssl_connect(ctx);
+	BIO_get_ssl(bio, &ssl);
+	SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+
+	int pocet_char = strlen(args.server);
+	char server_port[pocet_char+20];
+	sprintf(server_port,"%s:%d",args.server,args.port);
+
+
+	BIO_set_conn_hostname(bio, server_port);
+
+	if(BIO_do_connect(bio) <= 0)
 	{
-	    (*error) = _BAD_CERTFILE;
+	    (*error) = _CONNECTION_FAILED_TO_OPEN; // nepodarilo sa pripojiť k serveru
 	    return NULL;
 	}
-
 	
-
-	return NULL;
+	return bio;
 }

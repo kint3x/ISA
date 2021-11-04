@@ -13,5 +13,5 @@
 
 
 BIO * popcl_unsecured_connect(int *error);
-
+BIO *popcl_secured_connect(int *error);
 #endif
