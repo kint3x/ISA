@@ -13,4 +13,6 @@ int check_if_file_exists(char *file);
 int popcl_client_secure();
 int cut_buffer_lines(char *buf);
 void remove_character(char *buf);
+int popcl_client_starttls();
+int starttls(BIO * bio);
 #endif

@@ -14,4 +14,7 @@
 
 BIO * popcl_unsecured_connect(int *error);
 BIO *popcl_secured_connect(int *error);
+BIO *BIO_new_ssl_edited(SSL_CTX *ctx, int client);
+
+int starttls_connection(BIO * bio);
 #endif

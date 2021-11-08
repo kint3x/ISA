@@ -27,6 +27,12 @@ int main(int argc,char **argv){
 
 	printf("Aplikacia skoncila s kodom %d a stiahla %d sprav\n",ret,stiahnute_spravy);
 
+	if(args.n){
+		printf("Staženo %d nových zpráv\n",stiahnute_spravy);
+	}else{
+		printf("Staženo %d zpráv\n",stiahnute_spravy);
+	}
+
 	prg_free_memory();
 
 	return 0;

@@ -18,8 +18,13 @@ int popcl_client(){
 		ret = popcl_client_unsecure();
 		CHECK_ret
 	}
+	
 	if(args.T){
 		ret = popcl_client_secure();
+		CHECK_ret
+	}
+	if(args.S){
+		ret = popcl_client_starttls();
 		CHECK_ret
 	}
 	
@@ -28,17 +33,48 @@ int popcl_client(){
 }
 
 int popcl_client_secure(){
-	int ret;
+	int ret=0;
 
 	BIO * bio = popcl_secured_connect(&ret);
 	CHECK_ret
 
-
+	
 	ret = popcl_login(bio);
 	CHECK_ret
 
 	ret = download_emails(bio);
 	CHECK_ret
+
+	BIO_free_all(bio);
+
+	return 0;
+}
+
+
+int popcl_client_starttls(){
+	int ret=0;
+
+	printf("STARTING UNSECURED\n");
+	BIO * bio = popcl_unsecured_connect(&ret);
+	CHECK_ret
+
+	ret = starttls_connection(bio);
+	CHECK_ret
+
+	printf("OK\n");
+	printf("STARTING SECURED\n");
+
+	ret=starttls_connection(bio);
+	CHECK_ret
+
+	printf("SECURED CONNECTION\n");
+	ret = popcl_login(bio);
+	CHECK_ret
+
+	ret = download_emails(bio);
+	CHECK_ret
+
+	BIO_free_all(bio);
 
 	return 0;
 }
@@ -55,6 +91,7 @@ int popcl_client_unsecure(){
 	ret = download_emails(bio);
 	CHECK_ret
 
+	BIO_free_all(bio);
 	return 0;
 }
 
@@ -63,6 +100,19 @@ int get_request_reply(char *buf,BIO * bio,int buff_size){
 	WRITE_buf PRINT_buf 
 	memset(buf, '\0', sizeof(char)*buff_size);
 	READ_buf PRINT_buf
+
+	return 0;
+}
+
+int starttls(BIO * bio){
+	char buf[BUFFER_SIZE];
+	int ret;
+	EMPTY_buf sprintf(buf,"STLS\r\n"); WRITE_buf PRINT_buf EMPTY_buf
+	READ_buf PRINT_buf
+
+	if(buf[0] != '+'){
+		return _REPLAY_BAD;
+	}
 
 	return 0;
 }
@@ -87,7 +137,7 @@ int download_emails(BIO *bio){
 		EMPTY_buf sprintf(buf,"LIST %d\r\n",i); 
 		get_request_reply(buf,bio,BUFFER_SIZE);
 
-		parse_stats(buf,&msg_cnt,&total_size);
+		if((ret = parse_stats(buf,&msg_cnt,&total_size)) != 0) return ret;
 
 		printf("%d %d\n",msg_cnt,total_size);
 
@@ -97,35 +147,35 @@ int download_emails(BIO *bio){
 		EMPTY_buf  sprintf(buf,"UIDL %d\r\n",i); 
 		get_request_reply(buf,bio,BUFFER_SIZE);
 		//parse uid
-		parse_stats(buf,&msg_cnt,&total_size);
+		if((ret = parse_stats(buf,&msg_cnt,&total_size)) != 0) return ret;
 		EMPTY_buf sprintf(buf,"%d",total_size);
+
 
 		char *filename = (char *) malloc(sizeof(char)*strlen(buf)+1);
 		strcpy(filename,buf);
 
 		printf("FILENAME %s\n",filename);
 
-		//rozsirime o 500 charov pre odpoved servera
- 		char *email_content = (char *) malloc(sizeof(char)*email_size+100);
- 		printf("CREATING %d BYTES\n",email_size+100);
-
- 		//get email
- 		download_single_email(i,email_content,email_size,100,bio);
-
  		FILE *f;
  		EMPTY_buf sprintf(buf,"%s/%s",args.out,filename);
 
  		if(check_if_file_exists(buf)){ 
  			if(args.n){
- 				free(email_content);
+ 				
 				free(filename);
 				continue;
  			}
 
  		}
- 		else{
- 			stiahnute_spravy++;
- 		}
+
+ 		stiahnute_spravy++;
+
+ 		//rozsirime o 500 charov pre odpoved servera
+ 		char *email_content = (char *) malloc(sizeof(char)*email_size+100);
+ 		printf("CREATING %d BYTES\n",email_size+100);
+
+ 		//get email
+ 		download_single_email(i,email_content,email_size,100,bio);
 
  		
  		f = fopen(buf,"w");
@@ -278,6 +328,6 @@ int parse_stats(char *buf,int *msg_count,int *total_size){
 	*msg_count = atoi(count);
 	*total_size = atoi(help++);
 
-
+	if(buf[0] == '-') return _REPLAY_BAD;
 	return 0;
 }
