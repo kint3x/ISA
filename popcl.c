@@ -104,18 +104,6 @@ int get_request_reply(char *buf,BIO * bio,int buff_size){
 	return 0;
 }
 
-int starttls(BIO * bio){
-	char buf[BUFFER_SIZE];
-	int ret;
-	EMPTY_buf sprintf(buf,"STLS\r\n"); WRITE_buf PRINT_buf EMPTY_buf
-	READ_buf PRINT_buf
-
-	if(buf[0] != '+'){
-		return _REPLAY_BAD;
-	}
-
-	return 0;
-}
 
 int download_emails(BIO *bio){
 	char buf[BUFFER_SIZE];
