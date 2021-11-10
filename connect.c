@@ -128,17 +128,9 @@ int setup_CTX(){
 
 			return _CANT_LOAD_CERT;
 		}
-		if(!SSL_CTX_set_default_verify_dir(ctx)){
-
-			return _CANT_LOAD_CERT;
-		}
 	}
 	else{
 		if(!SSL_CTX_load_verify_locations(ctx,NULL,args.C)){
-
-			return _CANT_LOAD_CERT;
-		}
-		if(!SSL_CTX_set_default_verify_file(ctx)){
 
 			return _CANT_LOAD_CERT;
 		}

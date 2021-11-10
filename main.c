@@ -32,7 +32,7 @@ int main(int argc,char **argv){
 
 	ret = popcl_client();
 
-	printf("Aplikacia skoncila s kodom %d a stiahla %d sprav\n",ret,stiahnute_spravy);
+	//printf("Aplikacia skoncila s kodom %d a stiahla %d sprav\n",ret,stiahnute_spravy);
 
 	if(args.n){
 		printf("Staženo %d nových zpráv\n",stiahnute_spravy);
