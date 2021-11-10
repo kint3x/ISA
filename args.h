@@ -1,3 +1,10 @@
+/*
+*	Implementácia POP3 klienta
+*	Predmet: ISA
+*	Autor: Martin Matějka <xmatej55@stud.fit.vutbr.cz>
+*	Ročník: 3BIT
+*
+*/
 #ifndef _ARGS_H
 #define _ARGS_H
 

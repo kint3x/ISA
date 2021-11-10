@@ -1,4 +1,18 @@
+/*
+*	Implementácia POP3 klienta
+*	Predmet: ISA
+*	Autor: Martin Matějka <xmatej55@stud.fit.vutbr.cz>
+*	Ročník: 3BIT
+*
+*/
 
+/*
+* Hlavičkový súbor obsahuje všetky chybové kódy použité v programe
+*/
+#define _MISSING_HOSTNAME_OR_IP 9
+#define _MISSING_PARAMETER 10
+#define _CANNOT_OPEN_FOLDER 11
+#define _BAD_PARAMETER_COMBINATION 12
 
 #define _FILE_FAILURE 29
 #define _FILE_NOT_EXIST 30

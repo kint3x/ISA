@@ -1,10 +1,17 @@
+/*
+*	Implementácia POP3 klienta
+*	Predmet: ISA
+*	Autor: Martin Matějka <xmatej55@stud.fit.vutbr.cz>
+*	Ročník: 3BIT
+*
+*/
 #include <stdio.h>
 
 #include "headers.h"
 #include "args.h"
 #include "popcl.h"
 #include "err.h"
-
+#include "connect.h"
 
 int main(int argc,char **argv){
 
@@ -34,6 +41,6 @@ int main(int argc,char **argv){
 	}
 
 	prg_free_memory();
-
+	SSL_CTX_free(ctx);
 	return 0;
 }

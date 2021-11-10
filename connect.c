@@ -1,3 +1,10 @@
+/*
+*	Implementácia POP3 klienta
+*	Predmet: ISA
+*	Autor: Martin Matějka <xmatej55@stud.fit.vutbr.cz>
+*	Ročník: 3BIT
+*
+*/
 #include "connect.h"
 #include "err.h"
 #include "headers.h"
@@ -7,6 +14,12 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+/*
+*	Nezabezpečené pripojenie
+*	Vráti ukazovateľ na štruktúru typu BIO, ktorá je pripojená k serveru.
+*	V prípade že sa nepodarí pripojiť nahrá chybu do premennej error a vráti NULL. 
+*	
+*/
 BIO * popcl_unsecured_connect(int *error){
 
 	(*error) = 0 ;
@@ -40,50 +53,27 @@ BIO * popcl_unsecured_connect(int *error){
 	return bio;
 }
 
+/*
+*	Zabezpečené pripojenie
+*	Vráti ukazovateľ na štruktúru typu BIO, ktorá je pripojená k serveru.
+*	V prípade že sa nepodarí pripojiť nahrá chybu do premennej error a vráti NULL. 
+*	
+*/
 BIO *popcl_secured_connect(int *error){
 	
 	SSL_load_error_strings();
 	SSL_library_init();
 	ERR_load_BIO_strings();
 	OpenSSL_add_all_algorithms();
-	BIO * bio;
-	SSL_CTX  *ctx = SSL_CTX_new(SSLv23_client_method());
-	SSL  *ssl;
 
-	if((args.b_certfile || args.b_certdir) == 0){
-		if(!SSL_CTX_set_default_verify_paths(ctx)){
-			*(error) = _CANT_LOAD_CERT;
-			return NULL;
-		}
+	BIO * bio; SSL  *ssl;
+	int ret;
+	if((ret=setup_CTX())!=0){
+		(*error)=ret;
+		return NULL;
 	}
 
-	else if((args.b_certdir && args.b_certfile) == 1){
-		if(!SSL_CTX_load_verify_locations(ctx,args.c,args.C)){
-			*(error) = _CANT_LOAD_CERT;
-			return NULL;
-		}	
-	}
-	else if(args.b_certfile){
-		if(!SSL_CTX_load_verify_locations(ctx,args.c,NULL)){
-			*(error) = _CANT_LOAD_CERT;
-			return NULL;
-		}
-		if(!SSL_CTX_set_default_verify_dir(ctx)){
-			*(error) = _CANT_LOAD_CERT;
-			return NULL;
-		}
-	}
-	else{
-		if(!SSL_CTX_load_verify_locations(ctx,NULL,args.C)){
-			*(error) = _CANT_LOAD_CERT;
-			return NULL;
-		}
-		if(!SSL_CTX_set_default_verify_file(ctx)){
-			*(error) = _CANT_LOAD_CERT;
-			return NULL;
-		}
-	}
-
+	
 	bio = BIO_new_ssl_connect(ctx);
 	BIO_get_ssl(bio, &ssl);
 	SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
@@ -112,30 +102,85 @@ BIO *popcl_secured_connect(int *error){
 	return bio;
 }
 
+/*
+*	Funkcia nastaví globálnu CTX premennú, 
+*	ak sa nepodarí načítať certifikáty, vráti chybu.
+*	
+*/
+int setup_CTX(){
+	ctx = SSL_CTX_new(SSLv23_client_method());
+
+	if((args.b_certfile || args.b_certdir) == 0){
+		if(!SSL_CTX_set_default_verify_paths(ctx)){
+
+			return _CANT_LOAD_CERT;
+		}
+	}
+
+	else if((args.b_certdir && args.b_certfile) == 1){
+		if(!SSL_CTX_load_verify_locations(ctx,args.c,args.C)){
+
+			return _CANT_LOAD_CERT;
+		}	
+	}
+	else if(args.b_certfile){
+		if(!SSL_CTX_load_verify_locations(ctx,args.c,NULL)){
+
+			return _CANT_LOAD_CERT;
+		}
+		if(!SSL_CTX_set_default_verify_dir(ctx)){
+
+			return _CANT_LOAD_CERT;
+		}
+	}
+	else{
+		if(!SSL_CTX_load_verify_locations(ctx,NULL,args.C)){
+
+			return _CANT_LOAD_CERT;
+		}
+		if(!SSL_CTX_set_default_verify_file(ctx)){
+
+			return _CANT_LOAD_CERT;
+		}
+	}
+
+	return 0;
+}
 
 
 
+/*
+*	Funkcia vytvorí novú bio štruktúru, ktorá komunikuje zabezpečenou formou po
+*	zavolaní príkazu STLS na server
+*
+*/
 int starttls_connection(BIO * bio){
 	SSL_load_error_strings();
 	SSL_library_init();
 	ERR_load_BIO_strings();
 	OpenSSL_add_all_algorithms();
 
-	SSL_CTX  *ctx = SSL_CTX_new(SSLv23_client_method());
+	// Inicializuje SSL metodu 
 	SSL  *ssl;
-	SSL_CTX_set_default_verify_paths(ctx);
 
-	BIO *ret=NULL,*sslC=NULL;
+	int ret;
+	if((ret=setup_CTX())!=0){
+		return ret;
+	}
 
-	sslC = BIO_new_ssl(ctx,1);
-	ret = BIO_push(sslC,bio);
+	BIO *pushed=NULL,*new_ssl=NULL;
 
-	BIO_get_ssl(ret,&ssl);
+	// dva riadky z knižnice
+	new_ssl = BIO_new_ssl(ctx,1);
+	pushed = BIO_push(new_ssl,bio);
+
+	BIO_get_ssl(pushed,&ssl);
 
 	if(BIO_do_connect(bio) <= 0){
 		return _CONNECTION_FAILED_TO_OPEN;
 	}
 
+	//overenie či je pripojenie v poriadku
 	if(SSL_get_verify_result(ssl) != X509_V_OK)
 	{
 	    return _CONNECTION_FAILED_TO_OPEN;

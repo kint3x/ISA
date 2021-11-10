@@ -1,3 +1,10 @@
+/*
+*	Implementácia POP3 klienta
+*	Predmet: ISA
+*	Autor: Martin Matějka <xmatej55@stud.fit.vutbr.cz>
+*	Ročník: 3BIT
+*
+*/
 #ifndef _POPCL_H
 #define _POPCL_H
 #include "connect.h"

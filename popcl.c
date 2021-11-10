@@ -1,4 +1,10 @@
-
+/*
+*	Implementácia POP3 klienta
+*	Predmet: ISA
+*	Autor: Martin Matějka <xmatej55@stud.fit.vutbr.cz>
+*	Ročník: 3BIT
+*
+*/
 #include "popcl.h"
 #include "args.h"
 #include <stdio.h>
@@ -10,6 +16,10 @@
 
 #define BUFFER_SIZE 1024
 
+/**
+ * 	Funkcia podľa argumentov zapína správny režim klienta. Pri chybe v klientovi vracia kód chyby.
+ * 
+ */
 int popcl_client(){
 
 	int ret;
@@ -32,6 +42,12 @@ int popcl_client(){
 	return 0;
 }
 
+
+/**
+ * Zabezpečená verzia klienta použije na pripojenie zabezpečené pripojenie k serveru.
+ * Prihlási sa, stiahne emaily a uvolní bio. Pri chybe vracia kód chyby.
+ * 
+ **/
 int popcl_client_secure(){
 	int ret=0;
 
@@ -50,24 +66,23 @@ int popcl_client_secure(){
 	return 0;
 }
 
-
+/**
+ * STARTTLS verzia klienta použije na pripojenie nezabezpečené pripojenie k serveru.
+ * Potom vyvolá SSL/TLS a prepne do zabezpečeného režimu stiahne emaily a uvolní bio. Pri chybe vracia kód chyby.
+ * 
+ **/
 int popcl_client_starttls(){
 	int ret=0;
 
-	printf("STARTING UNSECURED\n");
 	BIO * bio = popcl_unsecured_connect(&ret);
 	CHECK_ret
 
 	ret = starttls_connection(bio);
 	CHECK_ret
 
-	printf("OK\n");
-	printf("STARTING SECURED\n");
-
 	ret=starttls_connection(bio);
 	CHECK_ret
 
-	printf("SECURED CONNECTION\n");
 	ret = popcl_login(bio);
 	CHECK_ret
 
@@ -79,6 +94,10 @@ int popcl_client_starttls(){
 	return 0;
 }
 
+/*
+*	Nezabezpečená verzia sa prihlási, stiahne emaily a uvolní bio.
+*
+*/
 int popcl_client_unsecure(){
 	int ret;
 
@@ -94,7 +113,9 @@ int popcl_client_unsecure(){
 	BIO_free_all(bio);
 	return 0;
 }
-
+/*
+*	Pošle command zadaný do buffera a vráti v ňom odpoveď.
+*/
 int get_request_reply(char *buf,BIO * bio,int buff_size){
 	int ret;
 	WRITE_buf PRINT_buf 
@@ -104,11 +125,15 @@ int get_request_reply(char *buf,BIO * bio,int buff_size){
 	return 0;
 }
 
-
+/*
+*	Funkcia stiahne všetky emaily zo servera na základe zadaných argumentov
+*
+*/
 int download_emails(BIO *bio){
 	char buf[BUFFER_SIZE];
 	int ret;
 
+	//zistí kolko emailov je v schránke
 	EMPTY_buf sprintf(buf,"STAT\r\n"); WRITE_buf PRINT_buf EMPTY_buf
 	READ_buf PRINT_buf
 
@@ -116,39 +141,39 @@ int download_emails(BIO *bio){
 	
 	int msg_cnt,total_size;
 
-	parse_stats(buf,&msg_cnt,&total_size);
+	//parsuje odpoved z príkazu STAT
+	ret = parse_stats(buf,&msg_cnt,&total_size);
+	CHECK_ret
 
 	int email_counts = msg_cnt;
 
 	for(int i=1;i<=email_counts;i++){
 		
+		// zisti o emaile velkost
 		EMPTY_buf sprintf(buf,"LIST %d\r\n",i); 
 		get_request_reply(buf,bio,BUFFER_SIZE);
 
 		if((ret = parse_stats(buf,&msg_cnt,&total_size)) != 0) return ret;
 
-		printf("%d %d\n",msg_cnt,total_size);
-
 		int email_size = total_size;
 
-		//get uid
+		//ziska uid emailu
 		EMPTY_buf  sprintf(buf,"UIDL %d\r\n",i); 
 		get_request_reply(buf,bio,BUFFER_SIZE);
-		//parse uid
+		//parsuje uid 
 		if((ret = parse_stats(buf,&msg_cnt,&total_size)) != 0) return ret;
 		EMPTY_buf sprintf(buf,"%d",total_size);
 
-
+		// ulozi si nazov do premennej
 		char *filename = (char *) malloc(sizeof(char)*strlen(buf)+1);
 		strcpy(filename,buf);
 
-		printf("FILENAME %s\n",filename);
-
  		FILE *f;
+ 		//nastavi cestu k suboru
  		EMPTY_buf sprintf(buf,"%s/%s",args.out,filename);
 
  		if(check_if_file_exists(buf)){ 
- 			if(args.n){
+ 			if(args.n){ // ak je parameter, ze má pracovat len s novými emailami a subor s tymto menom uz existuje, preskoci ho
  				
 				free(filename);
 				continue;
@@ -158,26 +183,20 @@ int download_emails(BIO *bio){
 
  		stiahnute_spravy++;
 
- 		//rozsirime o 500 charov pre odpoved servera
+ 		//rozsirim o 100 charov pre odpoved servera kvôli rezerve
  		char *email_content = (char *) malloc(sizeof(char)*email_size+100);
- 		printf("CREATING %d BYTES\n",email_size+100);
 
- 		//get email
- 		download_single_email(i,email_content,email_size,100,bio);
+ 		//stiahni email
+ 		ret=download_single_email(i,email_content,email_size,100,bio);
+ 		CHECK_ret
 
- 		
+ 		// zapisanie do suboru
  		f = fopen(buf,"w");
  		if(f == NULL)
 	    {
 	        return _FILE_FAILURE;
 	    }
-	    
-	    /*//orezanie mailu aby obsahoval len data
-	    char *without_header = email_content;
-	    while(*without_header != '\n') without_header++;
-	    without_header++;
-	    *(without_header+email_size)='\0';
-		*/
+		
 	    fprintf(f,"%s",email_content);
 
 	    fclose(f);
@@ -198,7 +217,10 @@ int download_emails(BIO *bio){
 
 	return 0;
 }
-
+/*
+*	Zistí, či súbor už existuje
+*
+*/
 int check_if_file_exists(char *file){
 	if( access( file, F_OK ) == 0 ) {
     	return 1;
@@ -207,6 +229,10 @@ int check_if_file_exists(char *file){
 	}
 }
 
+/**
+ * 	Stiahne email po blokoch do premennej message, odstranuje znaky pridané serverom podla protokolu POP3
+ * 
+ **/
 int download_single_email(int num,char *message,int message_size,int spacing,BIO * bio){
 	char buf[BUFFER_SIZE];
 	int ret;
@@ -219,7 +245,7 @@ int download_single_email(int num,char *message,int message_size,int spacing,BIO
 	READ_buf CHECK_buf_reply
 
 	char *p=buf;
-
+	// preskočenie odpovede servera
 	while(*(p) != '\n'){	
 		ret--;
 		p++;
@@ -231,27 +257,31 @@ int download_single_email(int num,char *message,int message_size,int spacing,BIO
 	rode_bytes=ret;
 
 	EMPTY_buf;
-
+	//pokial neprečítam celú správu
 	do {
 
 		READ_buf
+		//odstrani bodky, ktoré pridáva protokol POP3
 		cutted = cut_buffer_lines(buf);
 		strcpy(message+rode_bytes,buf);
 		rode_bytes += ret-cutted;
-		printf("RODE %d bytes out of %d\n",rode_bytes,message_size);
-		printf("\n ------------------------- BLOCK START-------------\n");
+	
 		PRINT_buf
-		printf("\n ------------------------- BLOCK END --------------\n");
 		EMPTY_buf
 		
-		//-3 for .CRLF trio
 	} while(rode_bytes < message_size);
+
+	//oreže správu na správnu veľkosť a odstráni .CRLF trio 
 	*(message+message_size)='\0';
-	printf("ENDED %d < %d\n",rode_bytes,message_size);
+	
 
 	return 0;
 
 }
+/*
+*	Funkcia hľadá v premennej buf postupnosť znakov \n.. a nahradzuje .. na . 
+*	vracia počet nahradených bodiek
+*/
 int cut_buffer_lines(char *buf){
 	int cut = 0;
 	char *h;
@@ -265,7 +295,6 @@ int cut_buffer_lines(char *buf){
 						h++;
 					}while(*(h+1) != '\0');
 					cut++;
-					printf("FOUND OCCURENCE %c%c%c %d %d %d\n",*(buf+1),*(buf+2),*(buf+3),*(buf+1),*(buf+2),*(buf+3));
 				}
 			}
 		}
@@ -274,6 +303,10 @@ int cut_buffer_lines(char *buf){
 
 	return cut;
 }
+/**
+ *	Funkcia sa prihlási pomocou parsovaných údajov odložených v argument štruktúre 
+ * 
+*/
 int popcl_login(BIO *bio){
 	char buf[BUFFER_SIZE];
 	int ret=0;
@@ -296,6 +329,11 @@ int popcl_login(BIO *bio){
 	if(buf[0] != '+') return _BAD_USERNAME_OR_PASS;
 	return 0;
 }
+
+/*
+*	Parsuje odpoveď servera v tvare +OK X Y a nastavuje X a Y cez pointer msg_coun a total_size
+*	Ak nastane chybná odpoved vracia chybový kod inak 0
+*/
 
 int parse_stats(char *buf,int *msg_count,int *total_size){
 

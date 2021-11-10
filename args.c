@@ -1,3 +1,10 @@
+/*
+*	Implementácia POP3 klienta
+*	Predmet: ISA
+*	Autor: Martin Matějka <xmatej55@stud.fit.vutbr.cz>
+*	Ročník: 3BIT
+*
+*/
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -11,7 +18,10 @@
 #include "args.h"
 #include "err.h"
 
-
+/*
+*	Zistí či zadaný string je číslo
+*
+*/
 int isNumber(char s[])
 {
     for (int i = 0; s[i]!= '\0'; i++)
@@ -22,6 +32,10 @@ int isNumber(char s[])
     return 1;
 }
 
+/*
+*	Funkcia parsuje argumenty pomocou knižnice getopt.h
+*
+*/
 int parse_args(int argc,char **argv,ARGUMENTS *args){
 	// parsovanie argumentov
 	int cmd_count=0;
@@ -110,8 +124,8 @@ int parse_args(int argc,char **argv,ARGUMENTS *args){
 	}
 
 	//povinne parametre
-	if(!args->b_auth) return 12;
-	if(!args->b_out) return 13;
+	if(!args->b_auth) return _MISSING_PARAMETER;
+	if(!args->b_out) return _MISSING_PARAMETER;
 
 	//check out dir
 	DIR* dir = opendir(args->out);
@@ -119,23 +133,22 @@ int parse_args(int argc,char **argv,ARGUMENTS *args){
 	    /* Directory exists. */
 	    closedir(dir);
 	} else if (ENOENT == errno) {
-	    return 10; //neda sa otvorit zlozka
+	    return _CANNOT_OPEN_FOLDER; //neda sa otvorit zlozka
 	} else {
-	    return 10; //neda sa otvorit zlozka
+	    return _CANNOT_OPEN_FOLDER; //neda sa otvorit zlozka
 	}
 
 
 
 	// nastavenia dynamickej logiky
-	if(cmd_count!=argc-2) return 10; // chyba hostname
+	if(cmd_count!=argc-2) return _MISSING_HOSTNAME_OR_IP; // chyba hostname
 	
 
-	if(args->T && args->S) return 11; // nemozu byt prepinace t a s naraz
+	if(args->T && args->S) return _BAD_PARAMETER_COMBINATION; // nemozu byt prepinace t a s naraz
 
-	//if((args->C || args->c ) && args->T) return 12; // nemozu byt T a c alebo C argumenty
-	if( (args->b_certfile || args->b_certdir) && !(args->T || args->S) ) return 12; // neda sa zadavat certifikat na unsecured
+	if( (args->b_certfile || args->b_certdir) && !(args->T || args->S) ) return _BAD_PARAMETER_COMBINATION; // neda sa zadavat certifikat na unsecured
 
-	//port nastavenie
+	//port nastavenie default
 	if(!args->b_port){
 		if(args->T) args->port = 995;
 		if(args->S) args->port = 110;
@@ -145,7 +158,10 @@ int parse_args(int argc,char **argv,ARGUMENTS *args){
 	return 0;
 }
 
-
+/*
+*	Inicializácia štruktúry s argumentami
+*
+*/
 void args_init(ARGUMENTS *args){
 
 	args->S = false; args->T = false; args->c=NULL;
@@ -177,6 +193,11 @@ void print_args(ARGUMENTS args){
 	printf("\n");
 }
 
+/**
+ * 	Funkcia má za úlohu parsovať súbor s prihlasovacími údajmi 
+ *  a nahrať údaje do štruktúry argumentov
+ *
+ */
 int parse_authfile(){
 	FILE *fp;
 
@@ -188,6 +209,7 @@ int parse_authfile(){
 	char buf[BUFFER_SIZE];
 	char *ptr = buf;
 	char ch;
+	//načíta obsah súboru do premennej buf, ak je súbor vačší ako 1024bytov, súbor je príliš veľký.
 	while((ch = fgetc(fp)) != EOF){
       if(ptr == buf+BUFFER_SIZE) return _FILE_TOO_BIG;
       if(ch == ' ') continue;
@@ -244,6 +266,10 @@ int parse_authfile(){
   	return 0;
 }
 
+/*
+*	Uvoľní alokovanú pamäť mallocom v štruktúre argumentov
+*	
+*/
 void prg_free_memory(){
 
 
