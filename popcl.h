@@ -22,4 +22,5 @@ int cut_buffer_lines(char *buf);
 void remove_character(char *buf);
 int popcl_client_starttls();
 int starttls(BIO * bio);
+int parse_reply(char *buf,int *msg_count,char *total_size);
 #endif

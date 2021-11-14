@@ -161,12 +161,12 @@ int download_emails(BIO *bio){
 		EMPTY_buf  sprintf(buf,"UIDL %d\r\n",i); 
 		get_request_reply(buf,bio,BUFFER_SIZE);
 		//parsuje uid 
-		if((ret = parse_stats(buf,&msg_cnt,&total_size)) != 0) return ret;
-		EMPTY_buf sprintf(buf,"%d",total_size);
+		char UIDL[80];
+		if((ret = parse_reply(buf,&msg_cnt,UIDL)) != 0) return ret;
 
 		// ulozi si nazov do premennej
 		char *filename = (char *) malloc(sizeof(char)*strlen(buf)+1);
-		strcpy(filename,buf);
+		strcpy(filename,UIDL);
 
  		FILE *f;
  		//nastavi cestu k suboru
@@ -266,7 +266,7 @@ int download_single_email(int num,char *message,int message_size,int spacing,BIO
 		strcpy(message+rode_bytes,buf);
 		rode_bytes += ret-cutted;
 	
-		PRINT_buf
+		//PRINT_buf
 		EMPTY_buf
 		
 	} while(rode_bytes < message_size);
@@ -353,6 +353,35 @@ int parse_stats(char *buf,int *msg_count,int *total_size){
 
 	*msg_count = atoi(count);
 	*total_size = atoi(help++);
+
+	if(buf[0] == '-') return _REPLAY_BAD;
+	return 0;
+}
+
+/*
+*	Parsuje odpoveď servera v tvare +OK X Y a nastavuje X a Y cez pointer msg_coun a total_size
+*	Ak nastane chybná odpoved vracia chybový kod inak 0, rozdiel od predošlej funkcie je, že druhý parameter je * char
+*/
+int parse_reply(char *buf,int *msg_count,char *total_size){
+
+	char count[50];
+	char *chelp=count;
+
+	char *help=buf;
+	// pretocit za +OK
+	help = help + 4;
+
+	while(*help != ' '){
+		*chelp=*help;
+		
+		chelp++;
+		help++;
+	}
+	help++;
+	*msg_count = atoi(count);
+
+	help[strlen(help)-2] = '\0';
+	strcpy(total_size,help);
 
 	if(buf[0] == '-') return _REPLAY_BAD;
 	return 0;
