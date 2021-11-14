@@ -170,7 +170,7 @@ int download_emails(BIO *bio){
 
  		FILE *f;
  		//nastavi cestu k suboru
- 		EMPTY_buf sprintf(buf,"%s/%s",args.out,filename);
+ 		EMPTY_buf sprintf(buf,"%s/%s.eml",args.out,filename);
 
  		if(check_if_file_exists(buf)){ 
  			if(args.n){ // ak je parameter, ze má pracovat len s novými emailami a subor s tymto menom uz existuje, preskoci ho

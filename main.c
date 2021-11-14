@@ -20,7 +20,7 @@ int main(int argc,char **argv){
 	
 	args_init(&args);
 	if((ret = parse_args(argc,argv,&args)) != 0){
-		printf("CHYBA %d\n",ret);
+		printf("Program skončil s chybou %d a stiahol %d správ\n",ret,stiahnute_spravy);
 		return 0;
 	}
 	
