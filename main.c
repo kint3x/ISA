@@ -25,19 +25,29 @@ int main(int argc,char **argv){
 	}
 	
 	ret = parse_authfile();
-	
+	if(ret != 0){
+		printf("Program skončil s chybou %d a stiahol %d správ\n",ret,stiahnute_spravy);
+		prg_free_memory();
+		SSL_CTX_free(ctx);
+		return;
+
+	}
 
 
 
 
 	ret = popcl_client();
 
-	//printf("Aplikacia skoncila s kodom %d a stiahla %d sprav\n",ret,stiahnute_spravy);
+	if(ret != 0){
+		printf("Program skončil s chybou %d a stiahol %d správ\n",ret,stiahnute_spravy);
 
-	if(args.n){
-		printf("Staženo %d nových zpráv\n",stiahnute_spravy);
-	}else{
-		printf("Staženo %d zpráv\n",stiahnute_spravy);
+	}
+	else{
+		if(args.n){
+			printf("Staženo %d nových zpráv\n",stiahnute_spravy);
+		}else{
+			printf("Staženo %d zpráv\n",stiahnute_spravy);
+		}
 	}
 
 	prg_free_memory();
