@@ -29,7 +29,7 @@ int main(int argc,char **argv){
 		printf("Program skončil s chybou %d a stiahol %d správ\n",ret,stiahnute_spravy);
 		prg_free_memory();
 		SSL_CTX_free(ctx);
-		return;
+		return 0;
 
 	}
 
